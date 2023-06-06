@@ -1,0 +1,368 @@
+// Tetris Constants
+
+const ROWS = 20;
+
+const COLS = 10;
+
+const SQUARE_SIZE = 30;
+
+const EMPTY_COLOR = "#000000";
+
+const BLOCKS = [
+
+  [[1, 1, 1, 1]],
+
+  [[1, 1], [1, 1]],
+
+  [[1, 1, 0], [0, 1, 1]],
+
+  [[0, 1, 1], [1, 1, 0]],
+
+  [[1, 1, 1], [0, 1, 0]],
+
+  [[1, 1, 1], [1, 0, 0]],
+
+  [[1, 1, 1], [0, 0, 1]],
+
+];
+
+// Tetris State
+
+let grid = createGrid();
+
+let currentBlock = getRandomBlock();
+
+let currentX = 0;
+
+let currentY = 0;
+
+let score = 0;
+
+// Tetris Game Loop
+
+function gameLoop() {
+
+  clearCanvas();
+
+  update();
+
+  draw();
+
+  requestAnimationFrame(gameLoop);
+
+}
+
+// Initialize the game
+
+function init() {
+
+  gameLoop();
+
+}
+
+// Update game state
+
+function update() {
+
+  if (collision(0, 1, currentBlock)) {
+
+    merge();
+
+    clearRows();
+
+    currentBlock = getRandomBlock();
+
+    currentX = 0;
+
+    currentY = 0;
+
+    if (collision(0, 0, currentBlock)) {
+
+      // Game Over
+
+      grid = createGrid();
+
+      score = 0;
+
+    }
+
+  } else {
+
+    currentY++;
+
+  }
+
+}
+
+// Draw game objects
+
+function draw() {
+
+  drawGrid();
+
+  drawBlock(currentBlock, currentX, currentY);
+
+}
+
+// Draw the Tetris grid
+
+function drawGrid() {
+
+  for (let row = 0; row < ROWS; row++) {
+
+    for (let col = 0; col < COLS; col++) {
+
+      drawSquare(col, row, grid[row][col]);
+
+    }
+
+  }
+
+}
+
+// Draw a Tetris block
+
+function drawBlock(block, x, y) {
+
+  for (let row = 0; row < block.length; row++) {
+
+    for (let col = 0; col < block[row].length; col++) {
+
+      if (block[row][col]) {
+
+        drawSquare(x + col, y + row, "#FF0000");
+
+      }
+
+    }
+
+  }
+
+}
+
+// Draw a single square of the Tetris grid
+
+function drawSquare(x, y, color) {
+
+  ctx.fillStyle = color;
+
+  ctx.fillRect(x * SQUARE_SIZE, y * SQUARE_SIZE, SQUARE_SIZE, SQUARE_SIZE);
+
+  ctx.strokeStyle = "#CCCCCC";
+
+  ctx.strokeRect(x * SQUARE_SIZE, y * SQUARE_SIZE, SQUARE_SIZE, SQUARE_SIZE);
+
+}
+
+// Merge the current block into the grid
+
+function merge() {
+
+  for (let row = 0; row < currentBlock.length; row++) {
+
+    for (let col = 0; col < currentBlock[row].length; col++) {
+
+      if (currentBlock[row][col]) {
+
+        grid[currentY + row][currentX + col] = "#FF0000";
+
+      }
+
+    }
+
+  }
+
+}
+
+// Clear completed rows
+
+function clearRows() {
+
+  outer: for (let row = ROWS - 1; row >= 0; row--) {
+
+    for (let col = 0; col < COLS; col++) {
+
+      if (grid[row][col] === EMPTY_COLOR) {
+
+        continue outer;
+
+      }
+
+    }
+
+    // Remove the completed row and shift the above rows down
+
+    grid.splice(row, 1);
+
+    grid.unshift(Array(COLS).fill(EMPTY_COLOR));
+
+    score++;
+
+  }
+
+}
+
+// Handle user input
+
+function handleInput(event) {
+
+  if (event.keyCode === 37) {
+
+    move(-1); // Left arrow key
+
+  } else if (event.keyCode === 39) {
+
+    move(1); // Right arrow key
+
+  } else if (event.keyCode === 40) {
+
+    drop(); // Down arrow key
+
+  } else if (event.keyCode === 38) {
+
+    rotate(); // Up arrow key
+
+  }
+
+}
+
+// Move the current block horizontally
+
+function move(direction) {
+
+  if (!collision(direction, 0, currentBlock)) {
+
+    currentX += direction;
+
+  }
+
+}
+
+// Drop the current block to the bottom
+
+function drop() {
+
+  while (!collision(0, 1, currentBlock)) {
+
+    currentY++;
+
+  }
+
+}
+
+// Rotate the current block
+
+function rotate() {
+
+  const rotatedBlock = rotateMatrix(currentBlock);
+
+  if (!collision(0, 0, rotatedBlock)) {
+
+    currentBlock = rotatedBlock;
+
+  }
+
+}
+
+// Check for collisions between the current block and the grid
+
+function collision(offsetX, offsetY, block) {
+
+  for (let row = 0; row < block.length; row++) {
+
+    for (let col = 0; col < block[row].length; col++) {
+
+      if (
+
+        block[row][col] &&
+
+        (grid[currentY + row + offsetY] &&
+
+          grid[currentY + row + offsetY][currentX + col + offsetX] !==
+
+            EMPTY_COLOR)
+
+      ) {
+
+        return true;
+
+      }
+
+    }
+
+  }
+
+  return false;
+
+}
+
+// Create an empty Tetris grid
+
+function createGrid() {
+
+  return Array.from({ length: ROWS }, () => Array(COLS).fill(EMPTY_COLOR));
+
+}
+
+// Get a random Tetris block
+
+function getRandomBlock() {
+
+  const index = Math.floor(Math.random() * BLOCKS.length);
+
+  return BLOCKS[index];
+
+}
+
+// Rotate a matrix clockwise
+
+function rotateMatrix(matrix) {
+
+  const rows = matrix.length;
+
+  const cols = matrix[0].length;
+
+  const rotatedMatrix = [];
+
+  for (let col = 0; col < cols; col++) {
+
+    const newRow = [];
+
+    for (let row = rows - 1; row >= 0; row--) {
+
+      newRow.push(matrix[row][col]);
+
+    }
+
+    rotatedMatrix.push(newRow);
+
+  }
+
+  return rotatedMatrix;
+
+}
+
+// Clear the game canvas
+
+function clearCanvas() {
+
+  ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+}
+
+// Set up the game canvas and event listeners
+
+const canvas = document.getElementById("gameCanvas");
+
+const ctx = canvas.getContext("2d");
+
+canvas.width = COLS * SQUARE_SIZE;
+
+canvas.height = ROWS * SQUARE_SIZE;
+
+document.addEventListener("keydown", handleInput);
+
+// Start the game
+
+init();
+
